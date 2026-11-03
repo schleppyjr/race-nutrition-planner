@@ -26,6 +26,14 @@ window.COURSES['nyc-2026'] = {
   // Course-provided fuel
   courseDrink: 'gatorade-endurance',
   courseGel: { plain: 'maurten-100', caf: 'maurten-caf100' },
+  expo: 'Bib and shirt pickup is at the TCS New York City Marathon Expo at the Javits Center, Thursday through Saturday before the race. There is no race-day pickup, so plan the trip and bring photo ID.',
+  weekLogistics: {
+    6: ['Book or confirm how you get to the Staten Island start (ferry, bus or official transport) and the time slot.'],
+    4: ['Check the forecast and load it on the Race day tab. Decide warm throwaway layers for the start village.'],
+    3: ['Expo opens: pick up your bib if you can go early and avoid the Saturday crowds.'],
+    2: ['Expo: last easy day to collect your bib. Buy nothing new to wear or eat on race day.'],
+    1: ['Expo closes today: bib pickup must be done. Lay out kit, pin the bib, pack gels and salt in the pockets you will actually use.', 'Stay off your feet in the afternoon; the start village wait is long.'],
+  },
   startVillageNotes: 'Start village typically offers water, Gatorade Endurance, coffee, tea and bagels. Expect to be there 2 to 3 hours before your wave.',
   notes: [
     'Water and Gatorade Endurance (lemon-lime) at every mile from 3 to 25 except miles 5, 7 and 9.',

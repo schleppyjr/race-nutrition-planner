@@ -126,6 +126,46 @@
     $('warnings').innerHTML = plan.warnings.length ? '<strong>Check these</strong><ul>' + plan.warnings.map(w => `<li>${esc(w)}</li>`).join('') + '</ul>' : '';
     $('output').hidden = false;
     $('buildStatus').textContent = `Plan built for ${plan.wave.label} start at ${fmtClock(plan.startMin)}, finish about ${fmtClock(plan.totals.finishClockMin)}.`;
+    buildWeek(plan);
+  }
+
+  function buildWeek(plan) {
+    const carry = Object.entries(plan.carry).map(([id, n]) => `${n} × ${P[id].name}`).join(', ');
+    const w = window.Week.buildWeek({
+      course: plan.course, kg: readInputs().kg, carbLoad: $('carbLoad').value, diet: $('diet').value, cafTaper: $('cafTaper').value,
+      lastRun: $('lastRun').value, sweatNa: +$('sweatNa').value || 900, caffeineMgPerKg: +$('caffeine').value,
+      dailyCaffeine: $('dailyCaf').value === '' ? null : +$('dailyCaf').value, cramps: $('cramps').value, carry,
+    });
+    renderWeek(w, plan);
+    $('weekOutput').hidden = false;
+  }
+
+  function renderWeek(w, plan) {
+    const s = w.summary;
+    $('weekSummary').innerHTML = `
+      <div class="stat"><div class="k">Carb load</div><div class="v">${s.loadCarbs} g/day</div><div class="s">${s.loadGkg} g/kg for ${s.loadDays} day${s.loadDays > 1 ? 's' : ''} · ${s.loadTotal} g over the load</div></div>
+      <div class="stat"><div class="k">Protein</div><div class="v">${s.protein} g/day</div><div class="s">About 1.6 g/kg, spread across meals</div></div>
+      <div class="stat"><div class="k">Race-eve sodium</div><div class="v">${s.saltySweater ? '2 to 3 g' : '1 to 2 g'}</div><div class="s">Extra, on top of normal food</div></div>
+      <div class="stat"><div class="k">Bib pickup</div><div class="s" style="font-size:13px">${esc(s.expo)}</div></div>`;
+    $('weekWarnings').hidden = !w.warnings.length;
+    $('weekWarnings').innerHTML = w.warnings.length ? '<strong>Check these</strong><ul>' + w.warnings.map(x => `<li>${esc(x)}</li>`).join('') + '</ul>' : '';
+    const raceDay = `<div class="day race"><div class="head"><strong>Race day · ${esc(plan.course.name)} ${plan.course.year}</strong><span class="muted">${plan.wave.label} start ${fmtClock(plan.startMin)}</span></div>
+      <ul><li>Breakfast, village fueling and the mile-by-mile plan are on the Race day tab.</li><li>Wake 3 to 3.5 hours before your wave so breakfast has time to clear.</li></ul></div>`;
+    $('weekDays').innerHTML = w.days.map(d => `
+      <div class="day ${d.isLoad ? 'load' : ''}">
+        <div class="head"><strong>${d.weekday} · ${d.dateLabel}</strong><span class="muted">${d.daysOut} day${d.daysOut > 1 ? 's' : ''} out${d.isLoad ? ' · carb load' : ''}</span></div>
+        <div class="targets">
+          <span>Carbs <b>${d.carbs} g</b> (${d.gkg} g/kg)</span>
+          <span>Protein <b>${d.protein} g</b></span>
+          <span>Fluid <b>${(d.fluidMl / 1000).toFixed(1)} L</b> plus thirst</span>
+          <span>Fiber: ${esc(d.fiber)}</span>
+          <span>Caffeine: ${esc(d.caffeine)}</span>
+        </div>
+        <div class="where muted">${esc(d.run)}</div>
+        <ul>${d.items.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+        ${d.meals ? `<div class="meals"><strong>Sample day:</strong> ${d.meals.map(esc).join(' · ')}</div>` : ''}
+      </div>`).join('') + raceDay;
+    $('carbExamples').innerHTML = w.examples.map(e => `<tr><td>${e.carbs} g</td><td class="wrap-ok">${esc(e.name)}</td></tr>`).join('');
   }
 
   function renderSummary(plan, inp) {
@@ -202,10 +242,11 @@
   }
 
   // ---------- share link ----------
-  const FIELDS = ['course', 'wave', 'goalH', 'goalM', 'goalS', 'arrival', 'weight', 'weightUnit', 'height', 'heightUnit', 'age', 'sex', 'carbs', 'gel', 'cafGel', 'salt', 'useCourseGels', 'drinkPref', 'cupOz', 'sweat', 'sweatNa', 'caffeine', 'dailyCaf', 'cramps', 'crampKit', 'date', 'wxManual', 'wxTemp', 'wxHum', 'wxWind'];
+  const FIELDS = ['course', 'wave', 'goalH', 'goalM', 'goalS', 'arrival', 'weight', 'weightUnit', 'height', 'heightUnit', 'age', 'sex', 'carbs', 'gel', 'cafGel', 'salt', 'useCourseGels', 'drinkPref', 'cupOz', 'sweat', 'sweatNa', 'caffeine', 'dailyCaf', 'cramps', 'crampKit', 'carbLoad', 'diet', 'cafTaper', 'lastRun', 'date', 'wxManual', 'wxTemp', 'wxHum', 'wxWind'];
   function stateToHash() {
     const o = {};
     for (const f of FIELDS) { const el = $(f); o[f] = el.type === 'checkbox' ? el.checked : el.value; }
+    o._tab = document.body.classList.contains('tab-week') ? 'week' : 'day';
     return '#' + btoa(unescape(encodeURIComponent(JSON.stringify(o))));
   }
   function hashToState() {
@@ -214,9 +255,18 @@
       const o = JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(1)))));
       $('course').value = o.course || $('course').value; onCourseChange();
       for (const f of FIELDS) { if (!(f in o)) continue; const el = $(f); if (el.type === 'checkbox') el.checked = !!o[f]; else el.value = o[f]; }
+      if (o._tab) setTab(o._tab);
       return true;
     } catch { return false; }
   }
+
+  // ---------- tabs ----------
+  function setTab(name) {
+    document.body.classList.remove('tab-day', 'tab-week');
+    document.body.classList.add('tab-' + name);
+    document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  }
+  document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
 
   // ---------- events ----------
   fillProducts(); fillCourses();

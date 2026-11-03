@@ -21,7 +21,8 @@ Weather is fetched client-side from Open-Meteo (no key needed). Everything else 
 - `index.html` – form and output page
 - `css/style.css` – styles, dark mode, print layout
 - `js/planner.js` – the fueling model (pure functions, no DOM)
-- `js/app.js` – form wiring, weather fetch, rendering, share links
+- `js/app.js` – form wiring, weather fetch, rendering, tabs, share links
+- `js/week.js` – race-week model: carb load, sodium preload, caffeine taper, logistics, sample menus
 - `data/products.js` – gel / chew / salt / drink library (per-serving carbs, sodium, caffeine)
 - `data/course-nyc-2026.js` – NYC 2026 course: waves, per-mile elevation, aid stations, course gels
 
@@ -30,6 +31,9 @@ Weather is fetched client-side from Open-Meteo (no key needed). Everything else 
 Copy `data/course-nyc-2026.js`, change the id, waves, `miles` (gain/loss in feet per mile) and `stations`, and add a `<script>` tag for it in `index.html`. The planner picks it up from `window.COURSES`.
 
 ## Model summary
+
+Race week tab: 5 to 6 g/kg carbs early in the week, a 7 g/kg ramp day, then a two-day 10 g/kg load (or three days at 8, or a light 6.5), protein near 1.6 g/kg, fiber and fat cut in the last two days, 1 to 3 g extra sodium on race eve, optional caffeine taper from four days out, and course logistics (expo, start transport) keyed by days out in the course file.
+
 
 - Splits: goal time spread over miles with a hill cost (about +3.5% time per 1% climb, −1.8% per 1% descent) plus a small start-congestion factor.
 - Sweat rate: estimated from weight, pace and apparent temperature (or a measured value). Fluid target is about 75% of sweat, floored at 350 ml/hr and capped at 900 ml/hr.

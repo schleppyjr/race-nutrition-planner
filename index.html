@@ -6,15 +6,20 @@
 <title>Race Fuel Planner</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="tab-day">
 <div class="wrap">
   <header>
     <h1>Race Fuel Planner</h1>
-    <p>Mile-by-mile gel, drink and caffeine plan built around the course's real aid stations, your pace and the weather.</p>
+    <p>Race-day gel, drink and caffeine plan built around the course's real aid stations, your pace and the weather, plus a day-by-day plan for race week.</p>
   </header>
 
+  <nav class="tabs noprint" role="tablist">
+    <button type="button" class="tab active" data-tab="day" role="tab">Race day</button>
+    <button type="button" class="tab" data-tab="week" role="tab">Race week</button>
+  </nav>
+
   <div class="grid">
-    <section class="card">
+    <section class="card" data-tab="both">
       <h2>Race</h2>
       <label>Course</label>
       <select id="course"></select>
@@ -30,7 +35,7 @@
       <div class="hint" id="villageNote"></div>
     </section>
 
-    <section class="card">
+    <section class="card" data-tab="both">
       <h2>Runner</h2>
       <div class="row">
         <div><label>Weight</label><input id="weight" type="number" min="60" max="400" value="150"></div>
@@ -47,7 +52,7 @@
       <div class="hint">Height, age and sex only feed the energy-burn estimate. Weight drives fluid, sodium and caffeine.</div>
     </section>
 
-    <section class="card">
+    <section class="card" data-tab="day">
       <h2>Fuel</h2>
       <label>Carb target</label>
       <select id="carbs">
@@ -76,7 +81,7 @@
       <div class="hint">Cups hold 6 to 8 oz; most runners get 3 to 4 oz down while moving.</div>
     </section>
 
-    <section class="card">
+    <section class="card" data-tab="day">
       <h2>Hydration and caffeine</h2>
       <label>Measured sweat rate, L/hr (optional)</label>
       <input id="sweat" type="number" min="0.2" max="3" step="0.05" placeholder="Leave blank to estimate">
@@ -107,7 +112,7 @@
       <div class="hint">Pickle juice stops a cramp through a mouth-and-throat reflex within about 90 seconds. Carry it, use it at the first twinge; it is not a scheduled item.</div>
     </section>
 
-    <section class="card">
+    <section class="card" data-tab="day">
       <h2>Weather</h2>
       <label>Race date</label>
       <input id="date" type="date">
@@ -123,6 +128,35 @@
       </div>
       <div class="hint">Hourly data comes from Open-Meteo: history for past dates, forecast for the next 16 days.</div>
     </section>
+
+    <section class="card" data-tab="week">
+      <h2>Race week</h2>
+      <label>Carb loading</label>
+      <select id="carbLoad">
+        <option value="2day" selected>Two-day load, 10 g/kg/day (recommended)</option>
+        <option value="3day">Three-day load, 8 g/kg/day</option>
+        <option value="light">Light, 6 to 7 g/kg/day (sensitive stomach)</option>
+      </select>
+      <label>Diet style for meal examples</label>
+      <select id="diet">
+        <option value="omnivore" selected>No restrictions</option>
+        <option value="vegetarian">Vegetarian</option>
+        <option value="vegan">Vegan</option>
+        <option value="glutenfree">Gluten-free</option>
+      </select>
+      <label>Caffeine in race week</label>
+      <select id="cafTaper">
+        <option value="keep" selected>Keep my usual intake</option>
+        <option value="taper">Cut back from 4 days out so race-day caffeine hits harder</option>
+      </select>
+      <label>Last long-ish run (days before race)</label>
+      <select id="lastRun">
+        <option value="6">6 days out (Monday)</option>
+        <option value="5" selected>5 days out (Tuesday)</option>
+        <option value="4">4 days out (Wednesday)</option>
+      </select>
+      <div class="hint">Uses weight, sweat sodium, caffeine and cramp history from the other cards.</div>
+    </section>
   </div>
 
   <div class="actions noprint">
@@ -132,7 +166,7 @@
     <span class="status" id="buildStatus"></span>
   </div>
 
-  <div id="output" hidden>
+  <div id="output" data-tab="day" hidden>
     <div class="summary" id="summary"></div>
     <div class="warn" id="warnings" hidden></div>
 
@@ -158,6 +192,16 @@
     <ul id="courseNotes"></ul>
   </div>
 
+  <div id="weekOutput" data-tab="week" hidden>
+    <div class="summary" id="weekSummary"></div>
+    <div class="warn" id="weekWarnings" hidden></div>
+    <h3>Day by day</h3>
+    <div id="weekDays"></div>
+    <h3>What the carb numbers look like</h3>
+    <div class="tablewrap"><table class="pre"><tbody id="carbExamples"></tbody></table></div>
+    <p class="hint">Carb targets are per day and include drinks. Protein stays near 1.6 g/kg; fat and fiber come down in the last two days so the gut is light on race morning. Expect to gain 1 to 2 kg over the load: that is glycogen plus the water it stores, and it is the point.</p>
+  </div>
+
   <footer>
     <p>Guidelines follow mainstream endurance sports-nutrition ranges: 30 to 90 g carbs per hour depending on gut training, roughly 75% sweat replacement capped near 900 ml/hr, 300 to 1000 mg sodium per hour, caffeine 2 to 5 mg/kg. Product values are approximate; check labels. Not medical advice. Sources: <span id="sources"></span></p>
   </footer>
@@ -165,6 +209,7 @@
 <script src="data/products.js"></script>
 <script src="data/course-nyc-2026.js"></script>
 <script src="js/planner.js"></script>
+<script src="js/week.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
