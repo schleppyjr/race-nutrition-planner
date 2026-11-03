@@ -98,6 +98,46 @@
     return segmentsFromTrack(out, course);
   }
 
+  // Known cumulative times at some mile markers -> segment seconds for every
+  // course segment. Gaps (miles without a mat) are filled in proportion to the
+  // plan's split for those miles, so hills still shape the estimate.
+  function splitsFromMarkers(markers, plan) {
+    const course = plan.course;
+    const pts = Object.entries(markers).map(([m, t]) => [+m, t]).filter(([m, t]) => t > 0 && m > 0 && m <= course.distanceMiles).sort((a, b) => a[0] - b[0]);
+    if (!pts.length) return null;
+    if (pts[pts.length - 1][0] < course.distanceMiles) return null; // need a finish time
+    const segs = new Array(plan.rows.length).fill(0);
+    let prevMile = 0, prevT = 0;
+    for (const [m, t] of pts) {
+      const idx = plan.rows.map((r, i) => (r.mile > prevMile + 1e-9 && r.mile <= m + 1e-9) ? i : -1).filter(i => i >= 0);
+      const w = idx.reduce((s, i) => s + plan.rows[i].split, 0);
+      for (const i of idx) segs[i] = (t - prevT) * plan.rows[i].split / w;
+      prevMile = m; prevT = t;
+    }
+    return segs;
+  }
+
+  // NYRR public results API (the same one results.nyrr.org uses). Returns
+  // { name, bib, netTime, markers } or throws with a readable message.
+  async function fetchNyrr(bib, eventCode) {
+    const api = 'https://rmsprodapi.nyrr.org/api/v2/runners';
+    const post = (path, body) => fetch(api + path, { method: 'POST', headers: { 'Content-Type': 'application/json;charset=UTF-8' }, body: JSON.stringify(body) }).then(r => { if (!r.ok) throw new Error('NYRR results returned ' + r.status); return r.json(); });
+    const list = await post('/finishers-filter', { eventCode, pageIndex: 1, pageSize: 50, searchString: String(bib).trim(), sortColumn: 'overallTime', sortDescending: false });
+    const hit = (list.items || []).find(x => String(x.bib) === String(bib).trim());
+    if (!hit) throw new Error(`No finisher with bib ${bib} in ${eventCode}.`);
+    const det = await post('/resultDetails', { eventCode, runnerId: hit.runnerId });
+    const d = det.details || {};
+    const markers = {};
+    for (const sp of d.splitResults || []) {
+      const mm = /^(\d+)M$/.exec(sp.splitCode || '');
+      if (mm) markers[+mm[1]] = toSec(sp.time);
+      else if (sp.splitCode === 'MAR') markers[26.2] = toSec(sp.time);
+    }
+    const net = toSec(d.netTime || hit.overallTime);
+    if (net && !markers[26.2]) markers[26.2] = net;
+    return { name: `${hit.firstName} ${hit.lastName}`, bib: hit.bib, netTime: net, markers, place: hit.overallPlace };
+  }
+
   // ---------- defaults from plan ----------
   function logFromPlan(plan) {
     return plan.rows.map(r => ({
@@ -210,20 +250,24 @@
     const earlyPace = rows.filter(r => r.mile >= 3 && r.mile <= 20).reduce((s, r) => s + r.pace, 0) / 18;
     const latePace = rows.filter(r => r.mile >= 21).reduce((s, r) => s + r.pace, 0) / rows.filter(r => r.mile >= 21).length;
     const fadePct = (latePace / earlyPace - 1) * 100;
+    // Fade is judged against the runner's own early pace (miles 3 to 13), not the plan,
+    // so a runner who simply had a slower day is not flagged from mile 14 onward.
+    const ownEarly = rows.filter(r => r.mile >= 3 && r.mile <= 13).reduce((s, r) => s + r.pace, 0) / 11;
     let fadeStart = null;
     for (let i = 0; i < rows.length - 1; i++) {
-      if (rows[i].mile >= 14 && rows[i].pace > rows[i].planPace * 1.06 && rows[i + 1].pace > rows[i + 1].planPace * 1.06) { fadeStart = rows[i].mile; break; }
+      if (rows[i].mile >= 14 && rows[i].pace > ownEarly * 1.08 && rows[i + 1].pace > ownEarly * 1.08) { fadeStart = rows[i].mile; break; }
     }
-    const wentOutFast = halfActual < halfPlan * 0.98;
+    const secondHalf = finishSec - halfActual;
+    const wentOutFast = secondHalf > halfActual * 1.06 || (halfActual < halfPlan * 0.98 && secondHalf > halfActual * 1.03);
     if (fadePct > 8) {
       let why;
       if (fadeStart) {
         const winStart = rows.find(r => r.mile === fadeStart).elapsed - 3600;
         const carbsBefore = intakes.filter(it => it.sec > winStart && it.sec <= rows.find(r => r.mile === fadeStart).elapsed).reduce((s, it) => s + it.carbs, 0);
         if (carbsBefore < 0.7 * inp.carbsPerHr) why = `Only ${Math.round(carbsBefore)} g of carbs went in during the hour before the fade, so fueling is the first suspect.`;
-        else if (wentOutFast) why = `Fueling before the fade was on target (${Math.round(carbsBefore)} g in the prior hour), but the first half ran ${Math.round((1 - halfActual / halfPlan) * 100)}% faster than planned. Pacing, not fuel, is the likely cause.`;
+        else if (wentOutFast) why = `Fueling before the fade was on target (${Math.round(carbsBefore)} g in the prior hour), but the second half took ${fmt(secondHalf - halfActual)} longer than the first. Pacing, not fuel, is the likely cause.`;
         else why = `Fueling before the fade was on target (${Math.round(carbsBefore)} g in the prior hour) and pacing was sensible, so look at heat, training, or the course.`;
-      } else why = wentOutFast ? 'The first half ran faster than planned.' : '';
+      } else why = wentOutFast ? 'The second half was much slower than the first, which points to pacing.' : '';
       add(fadeStart && !wentOutFast ? 'warn' : 'bad', `Pace faded ${fadePct.toFixed(0)}% over the last 10K${fadeStart ? `, starting around mile ${fadeStart}` : ''}. ${why}`);
     } else if (fadePct > 3) add('warn', `Mild fade of ${fadePct.toFixed(0)}% over the last 10K, normal for a marathon.`);
     else add('good', `Even pacing: the last 10K was within ${Math.abs(fadePct).toFixed(0)}% of your earlier pace.`);
@@ -256,7 +300,7 @@
       if (inp.cramps === 'never') notes.push('Set cramp history to "Sometimes" so the planner raises sodium and packs a cramp kit.');
     }
     if (!stomachBad.length && !under.length && inp.carbsPerHr < 90 && !energyBad.length) notes.push(`Fueling went well. If you want more, train toward ${inp.carbsPerHr + 15} g/hr on long runs before raising the race target.`);
-    if (wentOutFast) notes.push(`Set the goal time nearer ${fmt(Math.round(finishSec / 60) * 60)} and hold the planned splits through halfway.`);
+    if (wentOutFast) notes.push(`Positive split: the second half took ${fmt(secondHalf - halfActual)} longer than the first. Start nearer ${fmt(Math.round(finishSec / 60) * 60)} pace and hold it through halfway.`);
 
     const suggestions = {
       userSweat: sweat ? Math.round(sweat.rate * 20) / 20 : null,
@@ -278,5 +322,5 @@
     return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
   }
 
-  window.Review = { parseSplitsText, fromFinishTime, parseGpx, parseTcx, logFromPlan, analyze };
+  window.Review = { parseSplitsText, fromFinishTime, parseGpx, parseTcx, splitsFromMarkers, fetchNyrr, logFromPlan, analyze };
 })();

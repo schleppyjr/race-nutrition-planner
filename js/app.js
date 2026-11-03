@@ -245,7 +245,7 @@
 
   // ---------- post-race review ----------
   let currentPlan = null, currentInp = null;
-  let review = { log: null, splitSource: 'plan', splits: null, feel: {}, preW: '', postW: '', splitText: '', act: null };
+  let review = { log: null, splitSource: 'plan', splits: null, feel: {}, preW: '', postW: '', splitText: '', act: null, nyrr: null };
   const FEEL_MILES = [5, 10, 15, 20, 25];
   const storeKey = () => 'fuel-review:' + $('course').value;
   function saveReview() {
@@ -256,11 +256,14 @@
     $('splitSource').value = review.splitSource || 'plan';
     $('preW').value = review.preW || ''; $('postW').value = review.postW || ''; $('splitText').value = review.splitText || '';
     if (review.act) { $('actH').value = review.act[0]; $('actM').value = review.act[1]; $('actS').value = review.act[2]; }
+    if (review.nyrr) { $('bib').value = review.nyrr.bib || ''; $('bibStatus').textContent = nyrrStatus(review.nyrr); }
+    const rs = courses[$('course').value].results;
+    $('splitSource').querySelector('option[value="bib"]').hidden = !rs;
     onSplitSource();
   }
   function onSplitSource() {
     const v = $('splitSource').value;
-    $('splitFinish').hidden = v !== 'finish'; $('splitPaste').hidden = v !== 'paste'; $('splitFile').hidden = v !== 'file';
+    $('splitFinish').hidden = v !== 'finish'; $('splitPaste').hidden = v !== 'paste'; $('splitFile').hidden = v !== 'file'; $('splitBib').hidden = v !== 'bib';
   }
   function currentSplits() {
     const v = $('splitSource').value;
@@ -270,6 +273,7 @@
     }
     if (v === 'paste') return window.Review.parseSplitsText($('splitText').value, currentPlan.course);
     if (v === 'file') return review.splits;
+    if (v === 'bib') return review.nyrr && review.nyrr.markers ? window.Review.splitsFromMarkers(review.nyrr.markers, currentPlan) : null;
     return null;
   }
   function renderFeel() {
@@ -392,7 +396,21 @@
     </svg><div class="legend"><span><i style="background:var(--plan)"></i>Plan</span><span><i style="background:var(--actual)"></i>Actual</span><span>* partial hour, scaled</span></div>`;
   }
 
+  const nyrrStatus = n => `Found ${n.name}, bib ${n.bib}: ${fmtDur(n.netTime)} net, place ${n.place}. ${Object.keys(n.markers).length} timing mats.`;
+  async function fetchBib() {
+    const rs = currentPlan.course.results; if (!rs) return;
+    const bib = $('bib').value.trim(); if (!bib) { $('bibStatus').textContent = 'Enter a bib number.'; return; }
+    $('bibStatus').textContent = 'Looking up…';
+    try {
+      const n = await window.Review.fetchNyrr(bib, rs.eventCode);
+      review.nyrr = n; $('bibStatus').textContent = nyrrStatus(n);
+    } catch (e) { review.nyrr = null; $('bibStatus').textContent = e.message || 'Lookup failed.'; }
+    saveReview(); renderReview();
+  }
+
   // ---------- review events ----------
+  $('fetchBib').addEventListener('click', fetchBib);
+  $('bib').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); fetchBib(); } });
   $('splitSource').addEventListener('change', () => { review.splitSource = $('splitSource').value; onSplitSource(); saveReview(); renderReview(); });
   ['actH', 'actM', 'actS'].forEach(id => $(id).addEventListener('change', () => { review.act = [$('actH').value, $('actM').value, $('actS').value]; saveReview(); renderReview(); }));
   $('splitText').addEventListener('change', () => { review.splitText = $('splitText').value; saveReview(); renderReview(); });
@@ -489,7 +507,7 @@
     if (last) { $('profile').value = last; loadProfile(last, true); }
   }
   loadReview();
-  $('course').addEventListener('change', () => { onCourseChange(); review = { log: null, splitSource: 'plan', splits: null, feel: {}, preW: '', postW: '', splitText: '', act: null }; loadReview(); build(); });
+  $('course').addEventListener('change', () => { onCourseChange(); review = { log: null, splitSource: 'plan', splits: null, feel: {}, preW: '', postW: '', splitText: '', act: null, nyrr: null }; loadReview(); build(); });
   $('wave').addEventListener('change', () => { onWaveChange(); build(); });
   $('fetchWx').addEventListener('click', fetchWeather);
   $('build').addEventListener('click', build);

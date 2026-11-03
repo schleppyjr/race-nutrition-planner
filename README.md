@@ -33,7 +33,7 @@ Copy `data/course-nyc-2026.js`, change the id, waves, `miles` (gain/loss in feet
 
 ## Model summary
 
-Post-race tab: log what was actually taken per mile (pre-filled from the plan), add splits (finish time, pasted splits, or a GPX/TCX file parsed in the browser), pre/post weights and feel ratings. It compares plan and actual by hour, detects fades and links them to fueling or pacing, computes measured sweat rate, and can apply suggested inputs (sweat rate, carb target, drink choice, cramp history, goal time) back to the planner. Saved in localStorage only; exportable as JSON.
+Post-race tab: log what was actually taken per mile (pre-filled from the plan), add splits (official results by bib number via the public NYRR results API, a finish time, pasted splits, or a GPX/TCX file parsed in the browser), pre/post weights and feel ratings. It compares plan and actual by hour, detects fades and links them to fueling or pacing, computes measured sweat rate, and can apply suggested inputs (sweat rate, carb target, drink choice, cramp history, goal time) back to the planner. Saved in localStorage only; exportable as JSON.
 
 Race week tab: 5 to 6 g/kg carbs early in the week, a 7 g/kg ramp day, then a two-day 10 g/kg load (or three days at 8, or a light 6.5), protein near 1.6 g/kg, fiber and fat cut in the last two days, 1 to 3 g extra sodium on race eve, optional caffeine taper from four days out, and course logistics (expo, start transport) keyed by days out in the course file.
 

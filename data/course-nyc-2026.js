@@ -26,6 +26,8 @@ window.COURSES['nyc-2026'] = {
   // Course-provided fuel
   courseDrink: 'gatorade-endurance',
   courseGel: { plain: 'maurten-100', caf: 'maurten-caf100' },
+  // Official results lookup (public NYRR results API, used by results.nyrr.org)
+  results: { provider: 'nyrr', eventCode: 'M2026', url: 'https://results.nyrr.org/event/M2026/finishers' },
   expo: 'Bib and shirt pickup is at the TCS New York City Marathon Expo at the Javits Center, Thursday through Saturday before the race. There is no race-day pickup, so plan the trip and bring photo ID.',
   weekLogistics: {
     6: ['Book or confirm how you get to the Staten Island start (ferry, bus or official transport) and the time slot.'],
