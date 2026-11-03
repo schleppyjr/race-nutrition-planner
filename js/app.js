@@ -245,7 +245,7 @@
 
   // ---------- post-race review ----------
   let currentPlan = null, currentInp = null;
-  let review = { log: null, splitSource: 'plan', splits: null, feel: {}, preW: '', postW: '', splitText: '', act: null, nyrr: null };
+  let review = { log: null, splitSource: null, splits: null, feel: {}, preW: '', postW: '', splitText: '', act: null, nyrr: null };
   const FEEL_MILES = [5, 10, 15, 20, 25];
   const storeKey = () => 'fuel-review:' + $('course').value;
   function saveReview() {
@@ -253,7 +253,8 @@
   }
   function loadReview() {
     try { const j = JSON.parse(localStorage.getItem(storeKey()) || 'null'); if (j && j.log) review = j; } catch {}
-    $('splitSource').value = review.splitSource || 'plan';
+    const hasResults = !!courses[$('course').value].results;
+    $('splitSource').value = review.splitSource || (hasResults ? 'bib' : 'finish');
     $('preW').value = review.preW || ''; $('postW').value = review.postW || ''; $('splitText').value = review.splitText || '';
     if (review.act) { $('actH').value = review.act[0]; $('actM').value = review.act[1]; $('actS').value = review.act[2]; }
     if (review.nyrr) { $('bib').value = review.nyrr.bib || ''; $('bibStatus').textContent = nyrrStatus(review.nyrr); }
@@ -303,7 +304,7 @@
         <td>${sel}</td>
         <td><input type="checkbox" data-log="salt" data-i="${i}" ${l.salt ? 'checked' : ''} ${currentInp.saltId ? '' : 'disabled'}></td>
         <td><input type="checkbox" data-log="banana" data-i="${i}" ${l.banana ? 'checked' : ''}></td>
-        <td class="num">${fmtDur(splits ? splits[i] : r.split)}${splits ? '' : ' <span class="muted">(plan)</span>'}</td>
+        <td class="num">${splits ? fmtDur(splits[i]) : '<span class="muted">—</span>'}</td>
       </tr>`;
     }).join('');
   }
@@ -323,7 +324,7 @@
     const t = res.totals, p = currentPlan.totals;
     const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
     $('reviewSummary').innerHTML = `
-      <div class="stat"><div class="k">Finish</div><div class="v">${fmtDur(res.finishSec)}</div><div class="s">Plan ${fmtDur(res.planFinish)}${splits ? '' : ' · using plan splits'}</div></div>
+      <div class="stat"><div class="k">Actual finish</div><div class="v">${splits ? fmtDur(res.finishSec) : '—'}</div><div class="s">${splits ? `Plan was ${fmtDur(res.planFinish)}` : 'Not entered yet: add your bib, finish time or splits above'}</div></div>
       <div class="stat"><div class="k">Carbs</div><div class="v">${t.carbsRate} g/hr</div><div class="s">${t.carbs} g, ${pct(t.carbs, p.carbsIn)}% of plan</div></div>
       <div class="stat"><div class="k">Fluid</div><div class="v">${t.fluidRate} ml/hr</div><div class="s">${(t.fluid / 1000).toFixed(2)} L in race, plan ${p.fluidPerHr} ml/hr</div></div>
       <div class="stat"><div class="k">Sodium</div><div class="v">${t.sodiumRate} mg/hr</div><div class="s">${t.sodium} mg, plan ${p.sodiumPerHr} mg/hr</div></div>
@@ -507,7 +508,7 @@
     if (last) { $('profile').value = last; loadProfile(last, true); }
   }
   loadReview();
-  $('course').addEventListener('change', () => { onCourseChange(); review = { log: null, splitSource: 'plan', splits: null, feel: {}, preW: '', postW: '', splitText: '', act: null, nyrr: null }; loadReview(); build(); });
+  $('course').addEventListener('change', () => { onCourseChange(); review = { log: null, splitSource: null, splits: null, feel: {}, preW: '', postW: '', splitText: '', act: null, nyrr: null }; loadReview(); build(); });
   $('wave').addEventListener('change', () => { onWaveChange(); build(); });
   $('fetchWx').addEventListener('click', fetchWeather);
   $('build').addEventListener('click', build);

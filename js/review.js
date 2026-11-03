@@ -151,6 +151,7 @@
   function analyze(a) {
     const { plan, inp } = a;
     const course = plan.course;
+    const hasActual = !!a.splits;
     const splits = a.splits || plan.rows.map(r => r.split);
     const cupMl = inp.cupOz * OZ_ML;
     const drink = P[course.courseDrink];
@@ -244,12 +245,15 @@
 
     // ---- Pace ----
     const planFinish = plan.rows[plan.rows.length - 1].elapsedSec;
+    let wentOutFast = false, fadePct = null;
+    if (!hasActual) add('info', 'No actual splits yet, so pace is not reviewed. Enter your bib, finish time, splits or a watch file.');
+    else {
     const diff = finishSec - planFinish;
     const halfActual = rows.filter(r => r.mile <= 13).reduce((s, r) => s + r.split, 0);
     const halfPlan = plan.rows.filter(r => r.mile <= 13).reduce((s, r) => s + r.split, 0);
     const earlyPace = rows.filter(r => r.mile >= 3 && r.mile <= 20).reduce((s, r) => s + r.pace, 0) / 18;
     const latePace = rows.filter(r => r.mile >= 21).reduce((s, r) => s + r.pace, 0) / rows.filter(r => r.mile >= 21).length;
-    const fadePct = (latePace / earlyPace - 1) * 100;
+    fadePct = (latePace / earlyPace - 1) * 100;
     // Fade is judged against the runner's own early pace (miles 3 to 13), not the plan,
     // so a runner who simply had a slower day is not flagged from mile 14 onward.
     const ownEarly = rows.filter(r => r.mile >= 3 && r.mile <= 13).reduce((s, r) => s + r.pace, 0) / 11;
@@ -258,7 +262,7 @@
       if (rows[i].mile >= 14 && rows[i].pace > ownEarly * 1.08 && rows[i + 1].pace > ownEarly * 1.08) { fadeStart = rows[i].mile; break; }
     }
     const secondHalf = finishSec - halfActual;
-    const wentOutFast = secondHalf > halfActual * 1.06 || (halfActual < halfPlan * 0.98 && secondHalf > halfActual * 1.03);
+    wentOutFast = secondHalf > halfActual * 1.06 || (halfActual < halfPlan * 0.98 && secondHalf > halfActual * 1.03);
     if (fadePct > 8) {
       let why;
       if (fadeStart) {
@@ -272,6 +276,7 @@
     } else if (fadePct > 3) add('warn', `Mild fade of ${fadePct.toFixed(0)}% over the last 10K, normal for a marathon.`);
     else add('good', `Even pacing: the last 10K was within ${Math.abs(fadePct).toFixed(0)}% of your earlier pace.`);
     add(Math.abs(diff) < 300 ? 'good' : 'info', `Finished in ${fmt(finishSec)}, ${diff >= 0 ? fmt(diff) + ' slower' : fmt(-diff) + ' faster'} than the ${fmt(planFinish)} plan.`);
+    }
 
     // ---- Feel ----
     const stomachBad = (a.feel || []).filter(f => f.stomach && f.stomach <= 2);
@@ -300,7 +305,7 @@
       if (inp.cramps === 'never') notes.push('Set cramp history to "Sometimes" so the planner raises sodium and packs a cramp kit.');
     }
     if (!stomachBad.length && !under.length && inp.carbsPerHr < 90 && !energyBad.length) notes.push(`Fueling went well. If you want more, train toward ${inp.carbsPerHr + 15} g/hr on long runs before raising the race target.`);
-    if (wentOutFast) notes.push(`Positive split: the second half took ${fmt(secondHalf - halfActual)} longer than the first. Start nearer ${fmt(Math.round(finishSec / 60) * 60)} pace and hold it through halfway.`);
+    if (wentOutFast) { const h1 = rows.filter(r => r.mile <= 13).reduce((s, r) => s + r.split, 0); notes.push(`Positive split: the second half took ${fmt(finishSec - 2 * h1)} longer than the first. Start nearer ${fmt(Math.round(finishSec / 60) * 60)} pace and hold it through halfway.`); }
 
     const suggestions = {
       userSweat: sweat ? Math.round(sweat.rate * 20) / 20 : null,
@@ -311,7 +316,7 @@
     };
 
     return {
-      rows, hours, finishSec, planFinish, sweat, findings, suggestions,
+      rows, hours, finishSec, planFinish, hasActual, sweat, findings, suggestions,
       totals: { carbs: Math.round(carbsTotal), carbsRate: Math.round(carbsRate), fluid: Math.round(fluid), fluidRate: Math.round(fluidRate), sodium: Math.round(sodium), sodiumRate: Math.round(sodiumRate), caffeine: Math.round(caf + plan.totals.preRaceCaf), fadePct },
     };
   }

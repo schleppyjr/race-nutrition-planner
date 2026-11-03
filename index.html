@@ -175,11 +175,11 @@
       <h2>Post-race: what actually happened</h2>
       <label>Actual splits</label>
       <select id="splitSource">
-        <option value="plan">Same as plan (I ran it as planned)</option>
         <option value="bib">Official results by bib number</option>
         <option value="finish">Finish time only</option>
         <option value="paste">Paste per-mile splits</option>
         <option value="file">Upload GPX or TCX from my watch</option>
+        <option value="plan">No splits yet (use the plan as a stand-in)</option>
       </select>
       <div id="splitBib" hidden>
         <label>Bib number</label>
@@ -190,9 +190,9 @@
         <div class="hint" id="bibStatus">Pulls every timing mat from the official results, then fills the miles without a mat from your plan's hill profile.</div>
       </div>
       <div id="splitFinish" hidden class="row">
-        <div><label>Finish (h)</label><input id="actH" type="number" min="2" max="9" value="4"></div>
-        <div><label>min</label><input id="actM" type="number" min="0" max="59" value="12"></div>
-        <div><label>sec</label><input id="actS" type="number" min="0" max="59" value="0"></div>
+        <div><label>Actual finish (h)</label><input id="actH" type="number" min="2" max="9" placeholder="h"></div>
+        <div><label>min</label><input id="actM" type="number" min="0" max="59" placeholder="mm"></div>
+        <div><label>sec</label><input id="actS" type="number" min="0" max="59" placeholder="ss"></div>
       </div>
       <div id="splitPaste" hidden>
         <label>One split per line (mm:ss), or cumulative times (h:mm:ss)</label>
