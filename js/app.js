@@ -127,6 +127,8 @@
     $('output').hidden = false;
     $('buildStatus').textContent = `Plan built for ${plan.wave.label} start at ${fmtClock(plan.startMin)}, finish about ${fmtClock(plan.totals.finishClockMin)}.`;
     buildWeek(plan);
+    currentPlan = plan; currentInp = inp;
+    renderReview();
   }
 
   function buildWeek(plan) {
@@ -241,6 +243,187 @@
     }).join('');
   }
 
+  // ---------- post-race review ----------
+  let currentPlan = null, currentInp = null;
+  let review = { log: null, splitSource: 'plan', splits: null, feel: {}, preW: '', postW: '', splitText: '', act: null };
+  const FEEL_MILES = [5, 10, 15, 20, 25];
+  const storeKey = () => 'fuel-review:' + $('course').value;
+  function saveReview() {
+    try { localStorage.setItem(storeKey(), JSON.stringify(review)); } catch {}
+  }
+  function loadReview() {
+    try { const j = JSON.parse(localStorage.getItem(storeKey()) || 'null'); if (j && j.log) review = j; } catch {}
+    $('splitSource').value = review.splitSource || 'plan';
+    $('preW').value = review.preW || ''; $('postW').value = review.postW || ''; $('splitText').value = review.splitText || '';
+    if (review.act) { $('actH').value = review.act[0]; $('actM').value = review.act[1]; $('actS').value = review.act[2]; }
+    onSplitSource();
+  }
+  function onSplitSource() {
+    const v = $('splitSource').value;
+    $('splitFinish').hidden = v !== 'finish'; $('splitPaste').hidden = v !== 'paste'; $('splitFile').hidden = v !== 'file';
+  }
+  function currentSplits() {
+    const v = $('splitSource').value;
+    if (v === 'finish') {
+      const sec = (+$('actH').value) * 3600 + (+$('actM').value) * 60 + (+$('actS').value);
+      return sec > 3600 ? window.Review.fromFinishTime(sec, currentPlan) : null;
+    }
+    if (v === 'paste') return window.Review.parseSplitsText($('splitText').value, currentPlan.course);
+    if (v === 'file') return review.splits;
+    return null;
+  }
+  function renderFeel() {
+    $('feelBody').innerHTML = FEEL_MILES.map(m => {
+      const f = review.feel[m] || {};
+      const opts = sel => [1, 2, 3, 4, 5].map(n => `<option value="${n}" ${sel == n ? 'selected' : ''}>${n}</option>`).join('');
+      return `<tr><td>${m}</td>
+        <td><select data-feel="energy" data-mile="${m}"><option value="">–</option>${opts(f.energy)}</select></td>
+        <td><select data-feel="stomach" data-mile="${m}"><option value="">–</option>${opts(f.stomach)}</select></td>
+        <td><input type="checkbox" data-feel="cramp" data-mile="${m}" ${f.cramp ? 'checked' : ''}></td></tr>`;
+    }).join('');
+  }
+  function renderLog(splits) {
+    const plan = currentPlan;
+    const gelOpts = window.PRODUCTS.filter(p => p.type === 'gel' || p.type === 'chew' || p.type === 'food');
+    const defaults = window.Review.logFromPlan(plan);
+    $('logBody').innerHTML = plan.rows.map((r, i) => {
+      const l = review.log[i], d = defaults[i];
+      const changed = l.drink !== d.drink || l.water !== d.water || l.gel !== d.gel || !!l.salt !== !!d.salt || !!l.banana !== !!d.banana;
+      const st = !!r.station;
+      const sel = `<select data-log="gel" data-i="${i}"><option value="">none</option>${gelOpts.map(p => `<option value="${p.id}" ${l.gel === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select>`;
+      return `<tr class="${changed ? 'changed' : ''} ${st ? 'station' : ''}">
+        <td class="num"><strong>${r.mile}</strong></td>
+        <td class="wrap-ok muted">${st ? r.actions.map(esc).join('<br>') : '—'}</td>
+        <td><input type="number" min="0" max="4" data-log="drink" data-i="${i}" value="${l.drink}" ${st && r.station.drink ? '' : 'disabled'}></td>
+        <td><input type="number" min="0" max="4" data-log="water" data-i="${i}" value="${l.water}" ${st ? '' : 'disabled'}></td>
+        <td>${sel}</td>
+        <td><input type="checkbox" data-log="salt" data-i="${i}" ${l.salt ? 'checked' : ''} ${currentInp.saltId ? '' : 'disabled'}></td>
+        <td><input type="checkbox" data-log="banana" data-i="${i}" ${l.banana ? 'checked' : ''}></td>
+        <td class="num">${fmtDur(splits ? splits[i] : r.split)}${splits ? '' : ' <span class="muted">(plan)</span>'}</td>
+      </tr>`;
+    }).join('');
+  }
+  function renderReview(opts = {}) {
+    if (!currentPlan) return;
+    if (!review.log || review.log.length !== currentPlan.rows.length) review.log = window.Review.logFromPlan(currentPlan);
+    const splits = currentSplits();
+    if (!opts.keepInputs) { renderLog(splits); renderFeel(); }
+    const unitKg = $('weightUnit').value === 'kg';
+    const toKg = v => v === '' || v == null ? null : (unitKg ? +v : +v * 0.4536);
+    const feel = FEEL_MILES.map(m => ({ mile: m, ...(review.feel[m] || {}) })).filter(f => f.energy || f.stomach || f.cramp);
+    const res = window.Review.analyze({ plan: currentPlan, inp: currentInp, splits, log: review.log, feel, preKg: toKg(review.preW), postKg: toKg(review.postW) });
+    renderReviewResults(res, splits);
+    $('reviewOutput').hidden = false;
+  }
+  function renderReviewResults(res, splits) {
+    const t = res.totals, p = currentPlan.totals;
+    const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
+    $('reviewSummary').innerHTML = `
+      <div class="stat"><div class="k">Finish</div><div class="v">${fmtDur(res.finishSec)}</div><div class="s">Plan ${fmtDur(res.planFinish)}${splits ? '' : ' · using plan splits'}</div></div>
+      <div class="stat"><div class="k">Carbs</div><div class="v">${t.carbsRate} g/hr</div><div class="s">${t.carbs} g, ${pct(t.carbs, p.carbsIn)}% of plan</div></div>
+      <div class="stat"><div class="k">Fluid</div><div class="v">${t.fluidRate} ml/hr</div><div class="s">${(t.fluid / 1000).toFixed(2)} L in race, plan ${p.fluidPerHr} ml/hr</div></div>
+      <div class="stat"><div class="k">Sodium</div><div class="v">${t.sodiumRate} mg/hr</div><div class="s">${t.sodium} mg, plan ${p.sodiumPerHr} mg/hr</div></div>
+      <div class="stat"><div class="k">Caffeine</div><div class="v">${t.caffeine} mg</div><div class="s">Plan ${p.caffeineMg} mg</div></div>
+      ${res.sweat ? `<div class="stat"><div class="k">Measured sweat</div><div class="v">${res.sweat.rate.toFixed(2)} L/hr</div><div class="s">${res.sweat.pct.toFixed(1)}% body mass lost</div></div>` : ''}`;
+    const icon = { good: '✓', warn: '!', bad: '✕', info: 'i' };
+    $('findings').innerHTML = res.findings.map(f => `<div class="finding ${f.level}"><span class="ic">${icon[f.level] || 'i'}</span><span>${esc(f.text)}</span></div>`).join('');
+    $('paceChart').innerHTML = paceChart(res);
+    $('carbChart').innerHTML = carbChart(res);
+    const sg = res.suggestions;
+    const changes = [];
+    if (sg.userSweat) changes.push(`Measured sweat rate ${sg.userSweat} L/hr replaces the estimate.`);
+    if (sg.carbsPerHr !== currentInp.carbsPerHr) changes.push(`Carb target ${currentInp.carbsPerHr} → ${sg.carbsPerHr} g/hr.`);
+    if (sg.drinkPref !== currentInp.drinkPref) changes.push('Water only at stations; carbs from gels.');
+    if (sg.cramps) changes.push('Cramp history set to "Sometimes".');
+    if (sg.goalSec) changes.push(`Goal time set to ${fmtDur(sg.goalSec)}.`);
+    $('suggestions').innerHTML = `
+      ${sg.notes.length ? '<ul>' + sg.notes.map(n => `<li>${esc(n)}</li>`).join('') + '</ul>' : ''}
+      ${changes.length ? `<p style="margin:0 0 8px;font-size:14px"><strong>Apply to the planner:</strong> ${changes.map(esc).join(' ')}</p><button id="applySugg" type="button">Apply and rebuild plan</button>` : '<p class="muted" style="margin:0">No input changes suggested. Add weights, splits or feel ratings for more.</p>'}`;
+    const ap = $('applySugg');
+    if (ap) ap.addEventListener('click', () => {
+      if (sg.userSweat) $('sweat').value = sg.userSweat;
+      $('carbs').value = String(sg.carbsPerHr);
+      $('drinkPref').value = sg.drinkPref;
+      if (sg.cramps) $('cramps').value = sg.cramps;
+      if (sg.goalSec) { $('goalH').value = Math.floor(sg.goalSec / 3600); $('goalM').value = Math.floor((sg.goalSec % 3600) / 60); $('goalS').value = sg.goalSec % 60; }
+      build(); setTab('day'); window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
+  // ---------- charts (inline SVG) ----------
+  const W = 600, H = 220, PAD = { l: 44, r: 12, t: 10, b: 26 };
+  function paceChart(res) {
+    const rows = res.rows.filter(r => Number.isInteger(r.mile));
+    const vals = rows.flatMap(r => [r.pace, r.planPace]);
+    const lo = Math.floor(Math.min(...vals) / 30) * 30 - 15, hi = Math.ceil(Math.max(...vals) / 30) * 30 + 15;
+    const x = m => PAD.l + (m - 1) / 25 * (W - PAD.l - PAD.r);
+    const y = v => PAD.t + (v - lo) / (hi - lo) * (H - PAD.t - PAD.b);
+    const path = key => rows.map((r, i) => `${i ? 'L' : 'M'}${x(r.mile).toFixed(1)},${y(r[key]).toFixed(1)}`).join(' ');
+    const ticks = []; for (let v = Math.ceil(lo / 30) * 30; v <= hi; v += 30) ticks.push(v);
+    const label = v => `${Math.floor(v / 60)}:${String(Math.round(v % 60)).padStart(2, '0')}`;
+    const dots = (key, cls) => rows.map(r => `<circle class="dot ${cls}" cx="${x(r.mile).toFixed(1)}" cy="${y(r[key]).toFixed(1)}" r="3" stroke="var(--${cls})"><title>Mile ${r.mile}: ${label(r[key])}/mi ${cls}</title></circle>`).join('');
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Pace per mile, plan versus actual">
+      <g class="grid">${ticks.map(v => `<line x1="${PAD.l}" x2="${W - PAD.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text x="${PAD.l - 6}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${label(v)}</text>`).join('')}</g>
+      ${[1, 5, 10, 15, 20, 26].map(m => `<text x="${x(m).toFixed(1)}" y="${H - 8}" text-anchor="middle">${m}</text>`).join('')}
+      <path class="plan" d="${path('planPace')}"/><path class="actual" d="${path('pace')}"/>
+      ${dots('planPace', 'plan')}${dots('pace', 'actual')}
+      <text x="${W - PAD.r}" y="${(y(rows[rows.length - 1].planPace) - 6).toFixed(1)}" text-anchor="end" fill="var(--plan)">plan</text>
+      <text x="${W - PAD.r}" y="${(y(rows[rows.length - 1].pace) + 14).toFixed(1)}" text-anchor="end" fill="var(--actual)">actual</text>
+    </svg><div class="legend"><span><i style="background:var(--plan)"></i>Plan</span><span><i style="background:var(--actual)"></i>Actual</span><span>min/mile, lower is faster</span></div>`;
+  }
+  function carbChart(res) {
+    const hs = res.hours;
+    const target = currentInp.carbsPerHr;
+    const hi = Math.max(target, ...hs.flatMap(h => [h.carbsPlan, h.carbsActual])) * 1.15;
+    const n = hs.length, slot = (W - PAD.l - PAD.r) / n, bw = Math.min(28, slot * 0.32);
+    const y = v => PAD.t + (1 - v / hi) * (H - PAD.t - PAD.b);
+    const base = y(0);
+    const ticks = []; for (let v = 0; v <= hi; v += 30) ticks.push(v);
+    const bar = (h, i, key, cls, off) => {
+      const v = h[key], top = y(v), xx = PAD.l + i * slot + slot / 2 + off;
+      return `<rect class="bar ${cls}" x="${xx.toFixed(1)}" y="${top.toFixed(1)}" width="${bw}" height="${Math.max(0, base - top).toFixed(1)}" rx="3"><title>Hour ${h.hour} ${cls}: ${Math.round(v)} g/hr</title></rect>
+        <text x="${(xx + bw / 2).toFixed(1)}" y="${(top - 4).toFixed(1)}" text-anchor="middle">${Math.round(v)}</text>`;
+    };
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Carbs per hour, plan versus actual">
+      <g class="grid">${ticks.map(v => `<line x1="${PAD.l}" x2="${W - PAD.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text x="${PAD.l - 6}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${v}</text>`).join('')}</g>
+      <line x1="${PAD.l}" x2="${W - PAD.r}" y1="${y(target).toFixed(1)}" y2="${y(target).toFixed(1)}" stroke="var(--muted)" stroke-dasharray="4 4"/>
+      <text x="${W - PAD.r}" y="${(y(target) - 4).toFixed(1)}" text-anchor="end">target ${target} g/hr</text>
+      ${hs.map((h, i) => bar(h, i, 'carbsPlan', 'plan', -bw - 1) + bar(h, i, 'carbsActual', 'actual', 1) + `<text x="${(PAD.l + i * slot + slot / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle">hr ${h.hour}${h.frac < 0.99 ? '*' : ''}</text>`).join('')}
+    </svg><div class="legend"><span><i style="background:var(--plan)"></i>Plan</span><span><i style="background:var(--actual)"></i>Actual</span><span>* partial hour, scaled</span></div>`;
+  }
+
+  // ---------- review events ----------
+  $('splitSource').addEventListener('change', () => { review.splitSource = $('splitSource').value; onSplitSource(); saveReview(); renderReview(); });
+  ['actH', 'actM', 'actS'].forEach(id => $(id).addEventListener('change', () => { review.act = [$('actH').value, $('actM').value, $('actS').value]; saveReview(); renderReview(); }));
+  $('splitText').addEventListener('change', () => { review.splitText = $('splitText').value; saveReview(); renderReview(); });
+  ['preW', 'postW'].forEach(id => $(id).addEventListener('change', () => { review[id] = $(id).value; saveReview(); renderReview(); }));
+  $('trackFile').addEventListener('change', async e => {
+    const f = e.target.files[0]; if (!f) return;
+    const text = await f.text();
+    const segs = /tcx$/i.test(f.name) || /<TrainingCenterDatabase/.test(text) ? window.Review.parseTcx(text, currentPlan.course) : window.Review.parseGpx(text, currentPlan.course);
+    if (!segs) { $('trackStatus').textContent = 'Could not read a full-marathon track from that file.'; review.splits = null; }
+    else { review.splits = segs; $('trackStatus').textContent = `Read ${f.name}: finish ${fmtDur(segs.reduce((a, b) => a + b, 0))}.`; }
+    saveReview(); renderReview();
+  });
+  $('feelBody').addEventListener('change', e => {
+    const el = e.target, m = el.dataset.mile, k = el.dataset.feel; if (!k) return;
+    review.feel[m] = review.feel[m] || {};
+    review.feel[m][k] = el.type === 'checkbox' ? el.checked : (el.value ? +el.value : null);
+    saveReview(); renderReview({ keepInputs: true });
+  });
+  $('logBody').addEventListener('change', e => {
+    const el = e.target, i = +el.dataset.i, k = el.dataset.log; if (!k) return;
+    review.log[i][k] = el.type === 'checkbox' ? el.checked : el.type === 'number' ? Math.max(0, +el.value || 0) : el.value;
+    const d = window.Review.logFromPlan(currentPlan)[i], l = review.log[i];
+    el.closest('tr').classList.toggle('changed', l.drink !== d.drink || l.water !== d.water || l.gel !== d.gel || !!l.salt !== !!d.salt || !!l.banana !== !!d.banana);
+    saveReview(); renderReview({ keepInputs: true });
+  });
+  $('resetLog').addEventListener('click', () => { review.log = window.Review.logFromPlan(currentPlan); saveReview(); renderReview(); });
+  $('exportLog').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify({ course: $('course').value, exported: new Date().toISOString(), review }, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `race-review-${$('course').value}.json`; a.click();
+  });
+
   // ---------- share link ----------
   const FIELDS = ['course', 'wave', 'goalH', 'goalM', 'goalS', 'arrival', 'weight', 'weightUnit', 'height', 'heightUnit', 'age', 'sex', 'carbs', 'gel', 'cafGel', 'salt', 'useCourseGels', 'drinkPref', 'cupOz', 'sweat', 'sweatNa', 'caffeine', 'dailyCaf', 'cramps', 'crampKit', 'carbLoad', 'diet', 'cafTaper', 'lastRun', 'date', 'wxManual', 'wxTemp', 'wxHum', 'wxWind'];
   function stateToHash() {
@@ -271,7 +454,8 @@
   // ---------- events ----------
   fillProducts(); fillCourses();
   const restored = hashToState();
-  $('course').addEventListener('change', () => { onCourseChange(); build(); });
+  loadReview();
+  $('course').addEventListener('change', () => { onCourseChange(); review = { log: null, splitSource: 'plan', splits: null, feel: {}, preW: '', postW: '', splitText: '', act: null }; loadReview(); build(); });
   $('wave').addEventListener('change', () => { onWaveChange(); build(); });
   $('fetchWx').addEventListener('click', fetchWeather);
   $('build').addEventListener('click', build);

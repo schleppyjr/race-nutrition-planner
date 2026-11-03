@@ -23,6 +23,7 @@ Weather is fetched client-side from Open-Meteo (no key needed). Everything else 
 - `js/planner.js` – the fueling model (pure functions, no DOM)
 - `js/app.js` – form wiring, weather fetch, rendering, tabs, share links
 - `js/week.js` – race-week model: carb load, sodium preload, caffeine taper, logistics, sample menus
+- `js/review.js` – post-race review: GPX/TCX/split parsing, actual-intake tallies, findings, next-race suggestions
 - `data/products.js` – gel / chew / salt / drink library (per-serving carbs, sodium, caffeine)
 - `data/course-nyc-2026.js` – NYC 2026 course: waves, per-mile elevation, aid stations, course gels
 
@@ -31,6 +32,8 @@ Weather is fetched client-side from Open-Meteo (no key needed). Everything else 
 Copy `data/course-nyc-2026.js`, change the id, waves, `miles` (gain/loss in feet per mile) and `stations`, and add a `<script>` tag for it in `index.html`. The planner picks it up from `window.COURSES`.
 
 ## Model summary
+
+Post-race tab: log what was actually taken per mile (pre-filled from the plan), add splits (finish time, pasted splits, or a GPX/TCX file parsed in the browser), pre/post weights and feel ratings. It compares plan and actual by hour, detects fades and links them to fueling or pacing, computes measured sweat rate, and can apply suggested inputs (sweat rate, carb target, drink choice, cramp history, goal time) back to the planner. Saved in localStorage only; exportable as JSON.
 
 Race week tab: 5 to 6 g/kg carbs early in the week, a 7 g/kg ramp day, then a two-day 10 g/kg load (or three days at 8, or a light 6.5), protein near 1.6 g/kg, fiber and fat cut in the last two days, 1 to 3 g extra sodium on race eve, optional caffeine taper from four days out, and course logistics (expo, start transport) keyed by days out in the course file.
 
