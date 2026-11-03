@@ -28,6 +28,8 @@ window.PRODUCTS = [
   { id: 'skratch-chews',    type: 'chew', name: 'Skratch Energy Chews (1 pack)',  carbs: 36, sodium: 80,  caffeine: 0,   kcal: 160 },
   // Salt capsules
   { id: 'saltstick',        type: 'salt', name: 'SaltStick Caps',                 carbs: 0,  sodium: 215, caffeine: 0,   kcal: 0 },
+  { id: 'saltstick-chews',  type: 'salt', name: 'SaltStick FastChews (2 chews)',  carbs: 2,  sodium: 100, caffeine: 0,   kcal: 10 },
+  { id: 'saltstick-caps-plus', type: 'salt', name: 'SaltStick Caps Plus (with caffeine)', carbs: 0, sodium: 190, caffeine: 30, kcal: 0 },
   { id: 'ph-capsule',       type: 'salt', name: 'Precision Hydration Electrolyte Capsule', carbs: 0, sodium: 250, caffeine: 0, kcal: 0 },
   // Cramp kit (carried, used as needed, not scheduled)
   { id: 'pickle-shot',      type: 'cramp', name: 'Pickle juice shot (2.5 oz)',      carbs: 0,  sodium: 500, caffeine: 0,   kcal: 0 },
