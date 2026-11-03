@@ -31,6 +31,8 @@ body.tab-day [data-tab="day"]:not(.tab), body.tab-week [data-tab="week"]:not(.ta
 .day .targets span b { font-size: 15px; }
 .day ul { margin: 6px 0 0; padding-left: 18px; font-size: 14px; }
 .day .meals { font-size: 13px; color: var(--muted); margin-top: 6px; }
+.profiles { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 14px; }
+.profiles select { width: auto; min-width: 140px; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
 .card h2 { margin: 0 0 10px; font-size: 15px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }

@@ -427,8 +427,7 @@
   // ---------- share link ----------
   const FIELDS = ['course', 'wave', 'goalH', 'goalM', 'goalS', 'arrival', 'weight', 'weightUnit', 'height', 'heightUnit', 'age', 'sex', 'carbs', 'gel', 'cafGel', 'salt', 'useCourseGels', 'drinkPref', 'cupOz', 'sweat', 'sweatNa', 'caffeine', 'dailyCaf', 'cramps', 'crampKit', 'carbLoad', 'diet', 'cafTaper', 'lastRun', 'date', 'wxManual', 'wxTemp', 'wxHum', 'wxWind'];
   function stateToHash() {
-    const o = {};
-    for (const f of FIELDS) { const el = $(f); o[f] = el.type === 'checkbox' ? el.checked : el.value; }
+    const o = formState();
     o._tab = document.body.classList.contains('tab-week') ? 'week' : 'day';
     return '#' + btoa(unescape(encodeURIComponent(JSON.stringify(o))));
   }
@@ -443,6 +442,37 @@
     } catch { return false; }
   }
 
+  // ---------- named profiles (browser storage) ----------
+  function formState() {
+    const o = {};
+    for (const f of FIELDS) { const el = $(f); o[f] = el.type === 'checkbox' ? el.checked : el.value; }
+    return o;
+  }
+  function applyState(o) {
+    if (o.course) { $('course').value = o.course; onCourseChange(); }
+    for (const f of FIELDS) { if (!(f in o)) continue; const el = $(f); if (el.type === 'checkbox') el.checked = !!o[f]; else el.value = o[f]; }
+  }
+  function saveProfile() {
+    const name = $('profile').value; if (!name) { $('profileStatus').textContent = 'Pick a name first.'; return; }
+    try {
+      localStorage.setItem('fuel-profile:' + name, JSON.stringify({ saved: Date.now(), state: formState() }));
+      localStorage.setItem('fuel-profile:last', name);
+      $('profileStatus').textContent = `Saved ${name} at ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.`;
+    } catch { $('profileStatus').textContent = 'Could not save (storage blocked).'; }
+  }
+  function loadProfile(name, quiet) {
+    if (!name) { $('profileStatus').textContent = ''; return false; }
+    let j = null;
+    try { j = JSON.parse(localStorage.getItem('fuel-profile:' + name) || 'null'); } catch {}
+    if (!j) { if (!quiet) $('profileStatus').textContent = `Nothing saved for ${name} yet. Fill the form and press Save.`; return false; }
+    applyState(j.state);
+    try { localStorage.setItem('fuel-profile:last', name); } catch {}
+    $('profileStatus').textContent = `Loaded ${name} (saved ${new Date(j.saved).toLocaleDateString()}).`;
+    return true;
+  }
+  $('saveProfile').addEventListener('click', saveProfile);
+  $('profile').addEventListener('change', () => { if (loadProfile($('profile').value)) { if ($('wxManual').checked) build(); else fetchWeather(); } });
+
   // ---------- tabs ----------
   function setTab(name) {
     document.body.classList.remove('tab-day', 'tab-week');
@@ -454,6 +484,10 @@
   // ---------- events ----------
   fillProducts(); fillCourses();
   const restored = hashToState();
+  if (!restored) {
+    let last = null; try { last = localStorage.getItem('fuel-profile:last'); } catch {}
+    if (last) { $('profile').value = last; loadProfile(last, true); }
+  }
   loadReview();
   $('course').addEventListener('change', () => { onCourseChange(); review = { log: null, splitSource: 'plan', splits: null, feel: {}, preW: '', postW: '', splitText: '', act: null }; loadReview(); build(); });
   $('wave').addEventListener('change', () => { onWaveChange(); build(); });
