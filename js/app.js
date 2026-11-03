@@ -255,6 +255,7 @@
     try { const j = JSON.parse(localStorage.getItem(storeKey()) || 'null'); if (j && j.log) review = j; } catch {}
     const hasResults = !!courses[$('course').value].results;
     $('splitSource').value = review.splitSource || (hasResults ? 'bib' : 'finish');
+    if (!hasResults && $('splitSource').value === 'bib') $('splitSource').value = 'finish';
     $('preW').value = review.preW || ''; $('postW').value = review.postW || ''; $('splitText').value = review.splitText || '';
     if (review.act) { $('actH').value = review.act[0]; $('actM').value = review.act[1]; $('actS').value = review.act[2]; }
     if (review.nyrr) { $('bib').value = review.nyrr.bib || ''; $('bibStatus').textContent = nyrrStatus(review.nyrr); }
@@ -264,18 +265,29 @@
   }
   function onSplitSource() {
     const v = $('splitSource').value;
-    $('splitFinish').hidden = v !== 'finish'; $('splitPaste').hidden = v !== 'paste'; $('splitFile').hidden = v !== 'file'; $('splitBib').hidden = v !== 'bib';
+    $('splitPaste').hidden = v !== 'paste'; $('splitFile').hidden = v !== 'file'; $('splitBib').hidden = v !== 'bib';
+  }
+  const actualFinishSec = () => ($('actH').value === '' && $('actM').value === '') ? 0 : (+$('actH').value) * 3600 + (+$('actM').value) * 60 + (+$('actS').value);
+  function setActualFinish(sec) {
+    sec = Math.round(sec);
+    $('actH').value = Math.floor(sec / 3600); $('actM').value = Math.floor((sec % 3600) / 60); $('actS').value = sec % 60;
+    review.act = [$('actH').value, $('actM').value, $('actS').value];
   }
   function currentSplits() {
     const v = $('splitSource').value;
-    if (v === 'finish') {
-      const sec = (+$('actH').value) * 3600 + (+$('actM').value) * 60 + (+$('actS').value);
-      return sec > 3600 ? window.Review.fromFinishTime(sec, currentPlan) : null;
+    let segs = null;
+    if (v === 'paste') segs = window.Review.parseSplitsText($('splitText').value, currentPlan.course);
+    else if (v === 'file') segs = review.splits;
+    else if (v === 'bib') segs = review.nyrr && review.nyrr.markers ? window.Review.splitsFromMarkers(review.nyrr.markers, currentPlan) : null;
+    if (segs) {
+      // Keep the actual-finish fields in step with the loaded splits.
+      const total = segs.reduce((a, b) => a + b, 0);
+      if (Math.abs(total - actualFinishSec()) > 1) setActualFinish(total);
+      return segs;
     }
-    if (v === 'paste') return window.Review.parseSplitsText($('splitText').value, currentPlan.course);
-    if (v === 'file') return review.splits;
-    if (v === 'bib') return review.nyrr && review.nyrr.markers ? window.Review.splitsFromMarkers(review.nyrr.markers, currentPlan) : null;
-    return null;
+    // No per-mile data: estimate splits from the actual finish time, if entered.
+    const sec = actualFinishSec();
+    return sec > 3600 ? window.Review.fromFinishTime(sec, currentPlan) : null;
   }
   function renderFeel() {
     $('feelBody').innerHTML = FEEL_MILES.map(m => {
@@ -494,8 +506,10 @@
 
   // ---------- tabs ----------
   function setTab(name) {
-    document.body.classList.remove('tab-day', 'tab-week');
+    document.body.classList.remove('tab-day', 'tab-week', 'tab-review');
     document.body.classList.add('tab-' + name);
+    $('goalNote').hidden = name !== 'review';
+    if (name === 'review') $('goalNote').textContent = `Plan was a ${fmtDur((+$('goalH').value) * 3600 + (+$('goalM').value) * 60 + (+$('goalS').value))} goal. Change it on the Race day tab; enter your actual time below.`;
     document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   }
   document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));

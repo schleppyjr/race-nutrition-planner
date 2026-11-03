@@ -38,14 +38,17 @@
       <select id="course"></select>
       <label>Wave</label>
       <select id="wave"></select>
-      <div class="row">
-        <div><label>Goal finish (h)</label><input id="goalH" type="number" min="2" max="8" value="4"></div>
-        <div><label>min</label><input id="goalM" type="number" min="0" max="59" value="0"></div>
-        <div><label>sec</label><input id="goalS" type="number" min="0" max="59" value="0"></div>
+      <div id="goalRow">
+        <div class="row">
+          <div><label>Goal finish (h)</label><input id="goalH" type="number" min="2" max="8" value="4"></div>
+          <div><label>min</label><input id="goalM" type="number" min="0" max="59" value="0"></div>
+          <div><label>sec</label><input id="goalS" type="number" min="0" max="59" value="0"></div>
+        </div>
+        <label>Arrive at start village</label>
+        <input id="arrival" type="time" value="07:15">
+        <div class="hint" id="villageNote"></div>
       </div>
-      <label>Arrive at start village</label>
-      <input id="arrival" type="time" value="07:15">
-      <div class="hint" id="villageNote"></div>
+      <div class="hint" id="goalNote" hidden></div>
     </section>
 
     <section class="card" data-tab="both">
@@ -173,13 +176,18 @@
 
     <section class="card" data-tab="review">
       <h2>Post-race: what actually happened</h2>
-      <label>Actual splits</label>
+      <div id="splitFinish" class="row">
+        <div><label>Actual finish (h)</label><input id="actH" type="number" min="2" max="9" placeholder="h"></div>
+        <div><label>min</label><input id="actM" type="number" min="0" max="59" placeholder="mm"></div>
+        <div><label>sec</label><input id="actS" type="number" min="0" max="59" placeholder="ss"></div>
+      </div>
+      <div class="hint">Your official net time. Filled in automatically when you fetch results or load splits below.</div>
+      <label>Per-mile splits from</label>
       <select id="splitSource">
         <option value="bib">Official results by bib number</option>
-        <option value="finish">Finish time only</option>
-        <option value="paste">Paste per-mile splits</option>
-        <option value="file">Upload GPX or TCX from my watch</option>
-        <option value="plan">No splits yet (use the plan as a stand-in)</option>
+        <option value="paste">Pasted per-mile splits</option>
+        <option value="file">GPX or TCX file from my watch</option>
+        <option value="finish">Finish time only (splits estimated from the plan's hill profile)</option>
       </select>
       <div id="splitBib" hidden>
         <label>Bib number</label>
@@ -188,11 +196,6 @@
           <button id="fetchBib" type="button" style="flex:0 0 auto">Fetch splits</button>
         </div>
         <div class="hint" id="bibStatus">Pulls every timing mat from the official results, then fills the miles without a mat from your plan's hill profile.</div>
-      </div>
-      <div id="splitFinish" hidden class="row">
-        <div><label>Actual finish (h)</label><input id="actH" type="number" min="2" max="9" placeholder="h"></div>
-        <div><label>min</label><input id="actM" type="number" min="0" max="59" placeholder="mm"></div>
-        <div><label>sec</label><input id="actS" type="number" min="0" max="59" placeholder="ss"></div>
       </div>
       <div id="splitPaste" hidden>
         <label>One split per line (mm:ss), or cumulative times (h:mm:ss)</label>

@@ -23,6 +23,7 @@ header p { margin: 0 0 18px; color: var(--muted); }
 .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 [data-tab="day"]:not(.tab), [data-tab="week"]:not(.tab), [data-tab="review"]:not(.tab) { display: none; }
 body.tab-day [data-tab="day"]:not(.tab), body.tab-week [data-tab="week"]:not(.tab), body.tab-review [data-tab="review"]:not(.tab) { display: block; }
+body.tab-review #goalRow { display: none; }
 .day { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
 .day.race { box-shadow: inset 4px 0 0 var(--accent); }
 .day .head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 6px; }
