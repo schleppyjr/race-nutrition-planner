@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Race Fuel Planner</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Race Fuel Planner</h1>
+    <p>Mile-by-mile gel, drink and caffeine plan built around the course's real aid stations, your pace and the weather.</p>
+  </header>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Race</h2>
+      <label>Course</label>
+      <select id="course"></select>
+      <label>Wave</label>
+      <select id="wave"></select>
+      <div class="row">
+        <div><label>Goal finish (h)</label><input id="goalH" type="number" min="2" max="8" value="4"></div>
+        <div><label>min</label><input id="goalM" type="number" min="0" max="59" value="0"></div>
+        <div><label>sec</label><input id="goalS" type="number" min="0" max="59" value="0"></div>
+      </div>
+      <label>Arrive at start village</label>
+      <input id="arrival" type="time" value="07:15">
+      <div class="hint" id="villageNote"></div>
+    </section>
+
+    <section class="card">
+      <h2>Runner</h2>
+      <div class="row">
+        <div><label>Weight</label><input id="weight" type="number" min="60" max="400" value="150"></div>
+        <div><label>Unit</label><select id="weightUnit"><option value="lb">lb</option><option value="kg">kg</option></select></div>
+      </div>
+      <div class="row">
+        <div><label>Height</label><input id="height" type="number" min="100" max="250" value="170"></div>
+        <div><label>Unit</label><select id="heightUnit"><option value="cm">cm</option><option value="in">in</option></select></div>
+      </div>
+      <div class="row">
+        <div><label>Age</label><input id="age" type="number" min="14" max="99" value="35"></div>
+        <div><label>Sex</label><select id="sex"><option value="">Prefer not to say</option><option value="female">Female</option><option value="male">Male</option></select></div>
+      </div>
+      <div class="hint">Height, age and sex only feed the energy-burn estimate. Weight drives fluid, sodium and caffeine.</div>
+    </section>
+
+    <section class="card">
+      <h2>Fuel</h2>
+      <label>Carb target</label>
+      <select id="carbs">
+        <option value="45">45 g/hr: easy on the stomach</option>
+        <option value="60" selected>60 g/hr: standard, most runners</option>
+        <option value="75">75 g/hr: practiced in training</option>
+        <option value="90">90 g/hr: trained gut</option>
+        <option value="105">105 g/hr: very trained gut</option>
+        <option value="120">120 g/hr: elite-style high carb</option>
+      </select>
+      <label>Gel or chew you carry</label>
+      <select id="gel"></select>
+      <label>Caffeinated gel you carry</label>
+      <select id="cafGel"></select>
+      <label>Salt capsules</label>
+      <select id="salt"></select>
+      <div class="inline"><input id="useCourseGels" type="checkbox" checked><label for="useCourseGels" style="margin:0">Use the course gel depots</label></div>
+      <label>At aid stations, drink</label>
+      <select id="drinkPref">
+        <option value="drink">Sports drink when it fits the carb budget</option>
+        <option value="mix">Alternate sports drink and water</option>
+        <option value="water">Water only (carbs from gels)</option>
+      </select>
+      <label>How much you actually drink per cup (oz)</label>
+      <input id="cupOz" type="number" min="1" max="8" step="0.5" value="4">
+      <div class="hint">Cups hold 6 to 8 oz; most runners get 3 to 4 oz down while moving.</div>
+    </section>
+
+    <section class="card">
+      <h2>Hydration and caffeine</h2>
+      <label>Measured sweat rate, L/hr (optional)</label>
+      <input id="sweat" type="number" min="0.2" max="3" step="0.05" placeholder="Leave blank to estimate">
+      <label>Sweat sodium, mg/L</label>
+      <input id="sweatNa" type="number" min="200" max="2500" step="50" value="900">
+      <div class="hint">Average is about 900. Salty sweaters (white crust on clothes) run 1200 to 1800.</div>
+      <label>Caffeine</label>
+      <select id="caffeine">
+        <option value="0">None</option>
+        <option value="2">Low, about 2 mg/kg</option>
+        <option value="3" selected>Moderate, about 3 mg/kg</option>
+        <option value="5">High, about 5 mg/kg</option>
+      </select>
+      <label>Usual daily caffeine, mg (optional)</label>
+      <input id="dailyCaf" type="number" min="0" max="1000" step="10" placeholder="e.g. 150 for one large coffee">
+    </section>
+
+    <section class="card">
+      <h2>Weather</h2>
+      <label>Race date</label>
+      <input id="date" type="date">
+      <div class="actions" style="margin:10px 0 0">
+        <button id="fetchWx" type="button">Fetch hourly weather</button>
+        <span class="status" id="wxStatus">Not loaded</span>
+      </div>
+      <div class="inline"><input id="wxManual" type="checkbox"><label for="wxManual" style="margin:0">Override with manual values</label></div>
+      <div class="row">
+        <div><label>Temp °F</label><input id="wxTemp" type="number" value="55"></div>
+        <div><label>Humidity %</label><input id="wxHum" type="number" value="50"></div>
+        <div><label>Wind mph</label><input id="wxWind" type="number" value="5"></div>
+      </div>
+      <div class="hint">Hourly data comes from Open-Meteo: history for past dates, forecast for the next 16 days.</div>
+    </section>
+  </div>
+
+  <div class="actions noprint">
+    <button id="build" type="button">Build plan</button>
+    <button id="print" type="button" class="ghost">Print plan</button>
+    <button id="share" type="button" class="ghost">Copy share link</button>
+    <span class="status" id="buildStatus"></span>
+  </div>
+
+  <div id="output" hidden>
+    <div class="summary" id="summary"></div>
+    <div class="warn" id="warnings" hidden></div>
+
+    <h3>Before the start</h3>
+    <div class="tablewrap"><table class="pre"><tbody id="preBody"></tbody></table></div>
+
+    <h3>Mile by mile</h3>
+    <div class="tablewrap milewrap">
+      <table id="planTable">
+        <thead><tr>
+          <th>Mile</th><th>Where</th><th>Clock</th><th>Split</th><th>Elapsed</th><th>Weather</th><th>Station</th><th>Do this</th>
+          <th>Carbs g (g/hr)</th><th>Fluid ml</th><th>Sodium mg</th><th>Caffeine mg</th>
+        </tr></thead>
+        <tbody id="planBody"></tbody>
+      </table>
+    </div>
+    <div id="planCards" class="cards"></div>
+    <p class="hint">Carbs, fluid and sodium columns are cumulative. The g/hr figure is your running average, so it starts high (pre-race gel) and settles toward the target. Hill icons: ▲ meaningful climb, ▼ descent.</p>
+
+    <h3>Course notes</h3>
+    <ul id="courseNotes"></ul>
+  </div>
+
+  <footer>
+    <p>Guidelines follow mainstream endurance sports-nutrition ranges: 30 to 90 g carbs per hour depending on gut training, roughly 75% sweat replacement capped near 900 ml/hr, 300 to 1000 mg sodium per hour, caffeine 2 to 5 mg/kg. Product values are approximate; check labels. Not medical advice. Sources: <span id="sources"></span></p>
+  </footer>
+</div>
+<script src="data/products.js"></script>
+<script src="data/course-nyc-2026.js"></script>
+<script src="js/planner.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

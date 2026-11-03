@@ -1,0 +1,97 @@
+// TCS New York City Marathon 2026 course data.
+// Station layout and gel brand from 2026 pre-race course guides (NYRR course
+// preview, Marathon Handbook, The Running Channel). Elevation gain/loss per
+// mile are approximate figures used only to shape realistic splits.
+// Verify against the official NYRR course guide each year before trusting it.
+window.COURSES = window.COURSES || {};
+window.COURSES['nyc-2026'] = {
+  id: 'nyc-2026',
+  name: 'TCS New York City Marathon',
+  year: 2026,
+  date: '2026-11-01',
+  timezone: 'America/New_York',
+  // Approximate course centroid (Manhattan / East River) for weather lookup.
+  lat: 40.76, lon: -73.95,
+  distanceMiles: 26.2,
+  waves: [
+    { id: 'pw', label: 'Pro women', start: '08:35' },
+    { id: 'pm', label: 'Pro men', start: '09:05' },
+    { id: 'w1', label: 'Wave 1', start: '09:10' },
+    { id: 'w2', label: 'Wave 2', start: '09:45' },
+    { id: 'w3', label: 'Wave 3', start: '10:20' },
+    { id: 'w4', label: 'Wave 4', start: '10:55' },
+    { id: 'w5', label: 'Wave 5', start: '11:30' },
+  ],
+  defaultWave: 'w2',
+  // Course-provided fuel
+  courseDrink: 'gatorade-endurance',
+  courseGel: { plain: 'maurten-100', caf: 'maurten-caf100' },
+  startVillageNotes: 'Start village typically offers water, Gatorade Endurance, coffee, tea and bagels. Expect to be there 2 to 3 hours before your wave.',
+  notes: [
+    'Water and Gatorade Endurance (lemon-lime) at every mile from 3 to 25 except miles 5, 7 and 9.',
+    'Maurten Gel 100 (black) and Gel 100 Caf 100 (white) at miles 12 and 18. Supplies are limited; NYRR asks runners to carry their own and take one per depot.',
+    'Bananas at mile 21.',
+    'Self-serve Culligan water refill points at miles 8, 14, 17, 20 and 23 (new for 2026).',
+    'Cups are compostable paper, roughly 6 to 8 oz, usually filled about half way.',
+  ],
+  sources: [
+    { label: 'NYRR 2026 course preview', url: 'https://www.nyrr.org/tcsnycmarathon/the-course' },
+    { label: 'NYRR runner health and safety', url: 'https://www.nyrr.org/tcsnycmarathon/race-day/runner-health-and-safety' },
+    { label: 'Marathon Handbook mile by mile', url: 'https://marathonhandbook.com/new-york-city-marathon-course-mile-by-mile/' },
+    { label: 'Running Channel 2026 guide', url: 'https://therunningchannel.com/ultimate-guide-new-york-city-marathon/' },
+  ],
+  // One entry per mile marker. dist is the length of that segment in miles.
+  // gain/loss in feet (approximate). crowd = extra time fraction for congestion.
+  miles: [
+    { mile: 1,  dist: 1,   borough: 'Staten Island', landmark: 'Verrazzano-Narrows Bridge climb', gain: 160, loss: 0,   crowd: 0.04 },
+    { mile: 2,  dist: 1,   borough: 'Brooklyn',      landmark: 'Verrazzano descent into Bay Ridge', gain: 0, loss: 160, crowd: 0.02 },
+    { mile: 3,  dist: 1,   borough: 'Brooklyn',      landmark: 'Fourth Ave, Bay Ridge',        gain: 10,  loss: 30 },
+    { mile: 4,  dist: 1,   borough: 'Brooklyn',      landmark: 'Fourth Ave',                   gain: 10,  loss: 20 },
+    { mile: 5,  dist: 1,   borough: 'Brooklyn',      landmark: 'Fourth Ave, Sunset Park',      gain: 10,  loss: 10 },
+    { mile: 6,  dist: 1,   borough: 'Brooklyn',      landmark: 'Fourth Ave',                   gain: 10,  loss: 10 },
+    { mile: 7,  dist: 1,   borough: 'Brooklyn',      landmark: 'Fourth Ave, Park Slope',       gain: 15,  loss: 15 },
+    { mile: 8,  dist: 1,   borough: 'Brooklyn',      landmark: 'Lafayette Ave hills, Fort Greene', gain: 60, loss: 30 },
+    { mile: 9,  dist: 1,   borough: 'Brooklyn',      landmark: 'Lafayette Ave, Clinton Hill',  gain: 40,  loss: 40 },
+    { mile: 10, dist: 1,   borough: 'Brooklyn',      landmark: 'Bedford Ave',                  gain: 20,  loss: 20 },
+    { mile: 11, dist: 1,   borough: 'Brooklyn',      landmark: 'Williamsburg',                 gain: 20,  loss: 30 },
+    { mile: 12, dist: 1,   borough: 'Brooklyn',      landmark: 'Manhattan Ave, Greenpoint',    gain: 15,  loss: 15 },
+    { mile: 13, dist: 1,   borough: 'Queens',        landmark: 'Pulaski Bridge (halfway on the bridge)', gain: 50, loss: 50 },
+    { mile: 14, dist: 1,   borough: 'Queens',        landmark: 'Long Island City',             gain: 20,  loss: 20 },
+    { mile: 15, dist: 1,   borough: 'Queens',        landmark: 'Queensboro Bridge climb',      gain: 110, loss: 0 },
+    { mile: 16, dist: 1,   borough: 'Manhattan',     landmark: 'Queensboro descent to First Ave', gain: 20, loss: 130 },
+    { mile: 17, dist: 1,   borough: 'Manhattan',     landmark: 'First Ave',                    gain: 30,  loss: 30 },
+    { mile: 18, dist: 1,   borough: 'Manhattan',     landmark: 'First Ave, Upper East Side',   gain: 30,  loss: 30 },
+    { mile: 19, dist: 1,   borough: 'Manhattan',     landmark: 'First Ave, East Harlem',       gain: 30,  loss: 40 },
+    { mile: 20, dist: 1,   borough: 'Bronx',         landmark: 'Willis Ave Bridge into the Bronx', gain: 40, loss: 30 },
+    { mile: 21, dist: 1,   borough: 'Manhattan',     landmark: 'Madison Ave Bridge back to Manhattan', gain: 40, loss: 40 },
+    { mile: 22, dist: 1,   borough: 'Manhattan',     landmark: 'Fifth Ave, Harlem',            gain: 20,  loss: 20 },
+    { mile: 23, dist: 1,   borough: 'Manhattan',     landmark: 'Fifth Ave climb (Marcus Garvey to 90th)', gain: 80, loss: 10 },
+    { mile: 24, dist: 1,   borough: 'Manhattan',     landmark: 'Into Central Park at 90th St', gain: 40,  loss: 30 },
+    { mile: 25, dist: 1,   borough: 'Manhattan',     landmark: 'East Drive, Central Park',     gain: 30,  loss: 50 },
+    { mile: 26, dist: 1,   borough: 'Manhattan',     landmark: 'Central Park South to Columbus Circle', gain: 40, loss: 30 },
+    { mile: 26.2, dist: 0.2, borough: 'Manhattan',   landmark: 'Finish on West Drive',         gain: 25,  loss: 0 },
+  ],
+  // Aid stations keyed by mile marker.
+  stations: [
+    { mile: 3,  water: true, drink: true },
+    { mile: 4,  water: true, drink: true },
+    { mile: 6,  water: true, drink: true },
+    { mile: 8,  water: true, drink: true, refill: true },
+    { mile: 10, water: true, drink: true },
+    { mile: 11, water: true, drink: true },
+    { mile: 12, water: true, drink: true, gel: true },
+    { mile: 13, water: true, drink: true },
+    { mile: 14, water: true, drink: true, refill: true },
+    { mile: 15, water: true, drink: true },
+    { mile: 16, water: true, drink: true },
+    { mile: 17, water: true, drink: true, refill: true },
+    { mile: 18, water: true, drink: true, gel: true },
+    { mile: 19, water: true, drink: true },
+    { mile: 20, water: true, drink: true, refill: true },
+    { mile: 21, water: true, drink: true, banana: true },
+    { mile: 22, water: true, drink: true },
+    { mile: 23, water: true, drink: true, refill: true },
+    { mile: 24, water: true, drink: true },
+    { mile: 25, water: true, drink: true },
+  ],
+};
