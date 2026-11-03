@@ -2,6 +2,10 @@
 
 Static web app that builds a mile-by-mile fueling plan (gels, sports drink, water, salt, caffeine) for a marathon, using the course's real aid-station layout, the runner's goal time and the race-day weather.
 
+## Live site
+
+https://schleppyjr.github.io/race-nutrition-planner/ (GitHub Pages, deployed from `main`)
+
 ## Run it
 
 Open `index.html` in a browser, or serve the folder:
