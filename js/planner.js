@@ -94,7 +94,12 @@
 
     const warnings = [];
     const carry = {};   // productId -> count
-    const addCarry = id => { carry[id] = (carry[id] || 0) + 1; };
+    const addCarry = (id, n = 1) => { carry[id] = (carry[id] || 0) + n; };
+
+    // Cramp history: raises sodium replacement and adds an as-needed kit.
+    const crampLevel = inp.cramps === 'often' ? 2 : inp.cramps === 'sometimes' ? 1 : 0;
+    const sodiumFactor = crampLevel === 2 ? 0.85 : crampLevel === 1 ? 0.75 : 0.6;
+    const crampKit = crampLevel && inp.crampKitId ? P[inp.crampKitId] : null;
 
     // Caffeine budget
     const cafTotal = inp.caffeineMgPerKg * inp.kg;
@@ -127,7 +132,7 @@
       const sweat = sweatRate({ kg: inp.kg, paceSec: seg.pace, apparentF: wx ? wx.apparent : null, userSweat: inp.userSweat });
       const hrs = seg.split / 3600;
       const fluidTargetLhr = clamp(sweat * 0.75, 0.35, 0.9);
-      const sodiumTargetHr = clamp(sweat * inp.sweatNa * 0.6, 200, 1000);
+      const sodiumTargetHr = clamp(sweat * inp.sweatNa * sodiumFactor, 200, 1000);
       sweatTotalL += sweat * hrs;
       carbsOwed += inp.carbsPerHr * hrs;
       fluidOwed += fluidTargetLhr * 1000 * hrs;
@@ -222,6 +227,23 @@
     const kcalBurned = Math.round(1.0 * inp.kg * course.distanceMiles * 1.609);
     const bmr = bmrKcal(inp);
 
+    const pre = [];
+    // Cramp plan
+    let cramp = null;
+    if (crampLevel) {
+      const kitN = crampLevel === 2 ? 2 : 1;
+      if (crampKit) addCarry(crampKit.id, kitN);
+      const kitName = crampKit ? crampKit.name.replace(/ \(.*\)/, '') : 'pickle juice or mustard';
+      cramp = { steps: [
+        `At the first twinge: take one ${kitName}, swish it around your mouth before swallowing, and ease the pace for a minute. Relief usually comes within about 90 seconds and comes from a nerve reflex, not from the salt.`,
+        'Keep moving if you can. Stopping dead makes a calf or hamstring cramp lock harder. Shorten your stride instead.',
+        'Cramps late in a marathon track pace more than salt. If you are running ahead of your training, the fix is to back off, not to take more capsules.',
+        `Sodium target is raised to about ${Math.round(sodiumFactor * 100)}% of estimated sweat loss because of your cramp history.`,
+      ] };
+      if (!salt) warnings.push('Cramp history noted but no salt capsules selected. Many runners who cramp late do better with one every 45 to 60 minutes in warm conditions.');
+      if (crampLevel === 2) pre.push({ offset: -20, text: `Optional: a ${kitName} with your last cup of water. Some frequent crampers find it helps; skip it if vinegar unsettles your stomach.` });
+    }
+
     // Warnings
     if (inp.carbsPerHr >= 90) warnings.push(`Target of ${inp.carbsPerHr} g/hr needs a trained gut. Practice it on long runs or drop to 60 to 75 g/hr.`);
     const avgFluid = (fluidIn - preRaceFluidMl) / hrs;
@@ -235,7 +257,6 @@
     if (!inp.hourly) warnings.push('No weather loaded. Sweat and fluid targets assume a mild 60°F day.');
 
     // Pre-race timeline (minutes relative to start, negative = before)
-    const pre = [];
     const carbsBreakfast = Math.round(1.5 * inp.kg);
     pre.push({ offset: -180, text: `Breakfast: about ${carbsBreakfast} g carbs (bagel with jam plus a banana, or oatmeal). 400 to 600 ml fluid. Low fiber, low fat.` });
     pre.push({ offset: -120, text: `Sip 300 to 500 ml water or ${courseDrink.name}. Stop forcing fluid after this.` });
@@ -245,7 +266,7 @@
 
     return {
       course, wave, startMin, arrivalMin: inp.arrivalMin,
-      rows, pre, carry, warnings,
+      rows, pre, carry, warnings, cramp,
       totals: {
         finishSec, finishClockMin: startMin + finishSec / 60,
         carbsIn: Math.round(carbsIn), carbsPerHr: Math.round(carbsIn / hrs),

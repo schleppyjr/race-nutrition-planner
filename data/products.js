@@ -29,6 +29,9 @@ window.PRODUCTS = [
   // Salt capsules
   { id: 'saltstick',        type: 'salt', name: 'SaltStick Caps',                 carbs: 0,  sodium: 215, caffeine: 0,   kcal: 0 },
   { id: 'ph-capsule',       type: 'salt', name: 'Precision Hydration Electrolyte Capsule', carbs: 0, sodium: 250, caffeine: 0, kcal: 0 },
+  // Cramp kit (carried, used as needed, not scheduled)
+  { id: 'pickle-shot',      type: 'cramp', name: 'Pickle juice shot (2.5 oz)',      carbs: 0,  sodium: 500, caffeine: 0,   kcal: 0 },
+  { id: 'mustard-packet',   type: 'cramp', name: 'Mustard packet',                 carbs: 0,  sodium: 60,  caffeine: 0,   kcal: 0 },
   // Course food
   { id: 'banana',           type: 'food', name: 'Banana (half)',                  carbs: 13, sodium: 0,   caffeine: 0,   kcal: 50 },
   // Drinks, per fluid ounce

@@ -106,6 +106,7 @@
       useCourseGels: $('useCourseGels').checked, drinkPref: $('drinkPref').value, cupOz: +$('cupOz').value || 4,
       userSweat: +$('sweat').value || null, sweatNa: +$('sweatNa').value || 900,
       caffeineMgPerKg: +$('caffeine').value, dailyCaffeine: $('dailyCaf').value === '' ? null : +$('dailyCaf').value,
+      cramps: $('cramps').value, crampKitId: $('crampKit').value || null,
       hourly: wx,
     };
   }
@@ -117,6 +118,7 @@
     const plan = window.Planner.buildPlan(inp);
     renderSummary(plan, inp);
     renderPre(plan);
+    renderCramp(plan);
     renderRows(plan);
     renderCards(plan);
     $('courseNotes').innerHTML = plan.course.notes.map(n => `<li>${esc(n)}</li>`).join('');
@@ -138,6 +140,13 @@
       <div class="stat"><div class="k">Caffeine</div><div class="v">${t.caffeineMg} mg</div><div class="s">${t.preRaceCaf} mg before the start · ${(t.caffeineMg / inp.kg).toFixed(1)} mg/kg</div></div>
       <div class="stat"><div class="k">Energy</div><div class="v">${t.kcalIn} / ${t.kcalBurned} kcal</div><div class="s">Taken in vs burned (about 1 kcal per kg per km). ${kcalNote}</div></div>
       <div class="stat"><div class="k">Timing</div><div class="v">${fmtClock(plan.startMin)} → ${fmtClock(t.finishClockMin)}</div><div class="s">${plan.wave.label}, goal ${fmtDur(t.finishSec)}</div></div>`;
+  }
+
+  function renderCramp(plan) {
+    const c = plan.cramp;
+    $('crampCard').hidden = !c;
+    if (!c) return;
+    $('crampCard').innerHTML = `<h2>If a cramp starts</h2><ul style="margin:0;padding-left:18px">${c.steps.map(t => `<li>${esc(t)}</li>`).join('')}</ul>`;
   }
 
   function renderPre(plan) {
@@ -193,7 +202,7 @@
   }
 
   // ---------- share link ----------
-  const FIELDS = ['course', 'wave', 'goalH', 'goalM', 'goalS', 'arrival', 'weight', 'weightUnit', 'height', 'heightUnit', 'age', 'sex', 'carbs', 'gel', 'cafGel', 'salt', 'useCourseGels', 'drinkPref', 'cupOz', 'sweat', 'sweatNa', 'caffeine', 'dailyCaf', 'date', 'wxManual', 'wxTemp', 'wxHum', 'wxWind'];
+  const FIELDS = ['course', 'wave', 'goalH', 'goalM', 'goalS', 'arrival', 'weight', 'weightUnit', 'height', 'heightUnit', 'age', 'sex', 'carbs', 'gel', 'cafGel', 'salt', 'useCourseGels', 'drinkPref', 'cupOz', 'sweat', 'sweatNa', 'caffeine', 'dailyCaf', 'cramps', 'crampKit', 'date', 'wxManual', 'wxTemp', 'wxHum', 'wxWind'];
   function stateToHash() {
     const o = {};
     for (const f of FIELDS) { const el = $(f); o[f] = el.type === 'checkbox' ? el.checked : el.value; }
